@@ -100,7 +100,20 @@ hr { border-color: #e5e9f0; }
     border-radius: 12px;
     padding: 8px 18px;
     margin: 4px 6px 4px 0;
+    white-space: nowrap;
 }
+/* 手機／窄螢幕：多欄按鈕（查詢區間快選、最近查看過的股票）在容器變窄時，
+   原本文字會被壓到逐字換行變成直的（"近1個月"變成4行）。
+   上面已經讓按鈕文字 nowrap，這裡讓外層欄位在容器不夠寬時改成自動換行成好幾排，
+   而不是硬擠成又窄又高的欄位，觸控大小也不會被壓縮。*/
+@media (max-width: 640px) {
+    .block-container { padding-left: 1rem; padding-right: 1rem; }
+    div[data-testid="stHorizontalBlock"] { row-gap: 8px; }
+    div[data-testid="stColumn"] { min-width: fit-content !important; flex: 0 1 auto !important; }
+    div[data-testid="stColumn"] .stButton { width: 100%; }
+    div[data-testid="stColumn"] .stButton > button { width: 100%; }
+}
+.stApp { overflow-x: hidden; }
 div[data-baseweb="select"] { min-height: """ + BUTTON_MIN_HEIGHT + """; font-size: """ + FONT_SIZE_BODY + """; }
 input[type="text"] { min-height: """ + BUTTON_MIN_HEIGHT + """; font-size: """ + FONT_SIZE_BODY + """ !important; }
 .explain-card {
