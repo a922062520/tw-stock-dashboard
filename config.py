@@ -56,6 +56,10 @@ TWSE_ISIN_URLS = {
     "上市": "https://isin.twse.com.tw/isin/C_public.jsp?strMode=2",
     "上櫃": "https://isin.twse.com.tw/isin/C_public.jsp?strMode=4",
 }
+# 股價日 K：改用官方資料源（原本用 yfinance/Yahoo Finance，在 Streamlit Cloud
+# 這類共用 IP 的雲端主機上常被 Yahoo 判定為異常流量而擋掉，改走證交所/櫃買中心自家 API）。
+TWSE_STOCK_DAY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
+TPEX_STOCK_DAY_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/dailyTradingInfo"
 
 # 近期查詢預設區間（天數）與可選的快速區間按鈕
 DEFAULT_RANGE_DAYS = 182  # 近六個月
