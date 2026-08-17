@@ -1,0 +1,17 @@
+# Python 虛擬環境與快取（不需要、也不應該上傳到 GitHub）
+venv/
+__pycache__/
+*.pyc
+.Python
+
+# 系統雜項檔案
+.DS_Store
+
+# 舊版備份與本機快取殘留（如果之後又出現，一併排除）
+app.py.bak
+holdings.json
+.cache_chip/
+.cache_stock_list.json
+
+# Streamlit 機密設定檔（如果之後有 API 金鑰等敏感資訊，絕對不要上傳）
+.streamlit/secrets.toml
