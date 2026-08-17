@@ -13,11 +13,9 @@ Yahoo 會把雲端主機的共用 IP 判定為異常流量而擋掉（YFRateLimi
 - TWSE STOCK_DAY 一次只能查一個月，要抓的區間橫跨好幾個月時得逐月呼叫再合併，
   呼叫之間加一點 sleep 是刻意的，避免短時間內大量請求又被官方 API 限流。
 
-已知限制：
-- 只支援上市（.TW）股票的歷史區間查詢。上櫃（.TWO）股票原本透過 yfinance 的 .TWO
-  後綴查詢，但改查證交所後發現櫃買中心（TPEx）舊版的歷史行情 API 已經下架
-  （固定被導到 tpex.org.tw/errors），新版 OpenAPI 只提供「當天」快照、無法查歷史區間，
-  免費方案目前沒有等價替代來源。上櫃個股查詢會顯示查無資料，這是已知缺口，不是新 bug。
+上市（TWSE）股票先試證交所 STOCK_DAY；查不到（代表可能是上櫃股票）再試 FinMind
+（見 config.py 對 FINMIND_API_URL 的說明：TPEx 官方的歷史行情 API 已經下架，
+FinMind 是替代來源，非政府單位但長期被台灣開發者社群使用）。
 """
 
 from __future__ import annotations
@@ -29,7 +27,7 @@ import pandas as pd
 import requests
 import streamlit as st
 
-from config import CACHE_TTL_PRICE, CACHE_TTL_STOCK_NAME, TWSE_STOCK_DAY_URL
+from config import CACHE_TTL_PRICE, CACHE_TTL_STOCK_NAME, FINMIND_API_URL, TWSE_STOCK_DAY_URL
 
 _HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
@@ -88,9 +86,52 @@ def _fetch_twse_month(stock_code: str, month_start: date) -> pd.DataFrame:
     return df
 
 
+def _fetch_finmind_range(stock_code: str, start: date, end: date) -> pd.DataFrame:
+    """上櫃股票的補充來源：FinMind（見檔頭說明）。一次可以查整個區間，不用像 TWSE 那樣逐月呼叫。"""
+    try:
+        resp = requests.get(
+            FINMIND_API_URL,
+            params={
+                "dataset": "TaiwanStockPrice",
+                "data_id": stock_code,
+                "start_date": start.isoformat(),
+                "end_date": end.isoformat(),
+            },
+            timeout=15,
+        )
+        payload = resp.json()
+    except Exception:
+        return pd.DataFrame()
+
+    if payload.get("status") != 200 or not payload.get("data"):
+        return pd.DataFrame()
+
+    rows = []
+    for row in payload["data"]:
+        try:
+            rows.append(
+                {
+                    "Date": row["date"],
+                    "Open": float(row["open"]),
+                    "High": float(row["max"]),
+                    "Low": float(row["min"]),
+                    "Close": float(row["close"]),
+                    "Volume": int(row["Trading_Volume"]),
+                }
+            )
+        except (KeyError, ValueError, TypeError):
+            continue
+
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows).set_index("Date")
+    df.index = pd.to_datetime(df.index)
+    return df
+
+
 @st.cache_data(ttl=CACHE_TTL_PRICE, show_spinner=False)
 def fetch_price(stock_code: str, start: date, end: date):
-    """抓取台股日 K 資料（目前只有上市／.TW 走證交所官方 API，上櫃見檔頭「已知限制」）。"""
+    """抓取台股日 K 資料。先試上市（證交所 STOCK_DAY），查不到再試上櫃（FinMind）。"""
     frames = []
     for month_start in _month_starts(start, end):
         frame = _fetch_twse_month(stock_code, month_start)
@@ -98,16 +139,21 @@ def fetch_price(stock_code: str, start: date, end: date):
             frames.append(frame)
         time.sleep(0.15)  # 對官方 API 客氣一點，避免短時間內大量請求又被限流
 
-    if not frames:
-        return None, f"{stock_code}.TW"
+    if frames:
+        df = pd.concat(frames).sort_index()
+        df = df[~df.index.duplicated(keep="last")]
+        df = df.loc[(df.index.date >= start) & (df.index.date <= end)]
+        df = df.dropna(subset=["Close"])
+        if not df.empty:
+            return df, f"{stock_code}.TW"
 
-    df = pd.concat(frames).sort_index()
-    df = df[~df.index.duplicated(keep="last")]
-    df = df.loc[(df.index.date >= start) & (df.index.date <= end)]
-    df = df.dropna(subset=["Close"])
-    if df.empty:
-        return None, f"{stock_code}.TW"
-    return df, f"{stock_code}.TW"
+    # TWSE 查不到，可能是上櫃股票，改試 FinMind
+    df = _fetch_finmind_range(stock_code, start, end)
+    df = df.dropna(subset=["Close"]) if not df.empty else df
+    if not df.empty:
+        return df, f"{stock_code}.TWO"
+
+    return None, f"{stock_code}.TW"
 
 
 @st.cache_data(ttl=CACHE_TTL_STOCK_NAME, show_spinner=False)

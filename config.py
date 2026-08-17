@@ -57,9 +57,13 @@ TWSE_ISIN_URLS = {
     "上櫃": "https://isin.twse.com.tw/isin/C_public.jsp?strMode=4",
 }
 # 股價日 K：改用官方資料源（原本用 yfinance/Yahoo Finance，在 Streamlit Cloud
-# 這類共用 IP 的雲端主機上常被 Yahoo 判定為異常流量而擋掉，改走證交所/櫃買中心自家 API）。
+# 這類共用 IP 的雲端主機上常被 Yahoo 判定為異常流量而擋掉，改走證交所自家 API）。
 TWSE_STOCK_DAY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
-TPEX_STOCK_DAY_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/dailyTradingInfo"
+# 上櫃（TPEx）股票的補充來源：TPEx 官方的歷史區間查詢 API 已經下架（固定被導向錯誤頁），
+# 新版 OpenAPI 只有當日快照、無法查歷史區間，所以上櫃股票改用 FinMind
+# （台灣開發者社群長期使用的開放資料整合平台，非政府單位，但同時彙整證交所與櫃買中心資料，
+# 免費額度供合理使用，不需要 API 金鑰）。
+FINMIND_API_URL = "https://api.finmindtrade.com/api/v4/data"
 
 # 近期查詢預設區間（天數）與可選的快速區間按鈕
 DEFAULT_RANGE_DAYS = 182  # 近六個月
