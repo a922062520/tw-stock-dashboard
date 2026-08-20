@@ -183,8 +183,8 @@ def render_reference_price_card(concl: dict) -> None:
 
 def render_annual_metric_card(annual_return: float, annual_vol: float, risk_lvl: str) -> None:
     col1, col2, col3 = st.columns(3)
-    col1.metric("年化報酬率（近一年）", f"{annual_return * 100:.2f}%", f"{annual_return * 100:+.2f}%", delta_color="inverse")
-    col2.metric("年化波動度（近一年）", f"{annual_vol * 100:.2f}%")
+    col1.metric("年化報酬率", f"{annual_return * 100:.2f}%", f"{annual_return * 100:+.2f}%", delta_color="inverse")
+    col2.metric("年化波動度", f"{annual_vol * 100:.2f}%")
     with col3:
         render_html(f"**風險等級** {risk_badge_html(risk_lvl)}")
     st.caption(ANNUAL_METRIC_EXPLAIN.format(explain=RISK_EXPLAIN.get(risk_lvl, "")))
@@ -260,7 +260,7 @@ def build_summary_text(
         f"參考停損價：{concl['stop_loss_price']:.2f}（-{concl['stop_loss_pct']*100:.1f}%）",
         f"參考停利價：{concl['take_profit_price']:.2f}（+{concl['take_profit_pct']*100:.1f}%）",
         "",
-        f"年化報酬率（近一年）：{annual_return*100:.2f}%",
+        f"年化報酬率：{annual_return*100:.2f}%",
         f"年化波動度（近一年）：{annual_vol*100:.2f}%",
         "",
         "資料僅供參考，不構成投資建議。",

@@ -91,11 +91,12 @@ if not raw_input:
 if not stock_code_input:
     st.stop()
 
-# 抓資料時往前多抓一段當「暖機」：季線(MA60)要60個交易日才有值，選「近1個月」這種短
-# 區間本來會讓MA60、RSI、KD全部算不出來或是初期暖機失真值。年化報酬／波動度則固定要
-# 抓近一年資料，不管顯示區間選多短——兩個需求合併成一次抓取，抓完再切成使用者實際要
-# 看的顯示區間，不會多打一次API。
-calc_start_date = min(start_date - timedelta(days=150), end_date - timedelta(days=370))
+# 抓資料時往前多抓120天當「暖機」：季線(MA60)要60個交易日才有值，選「近1個月」這種短
+# 區間本來會讓MA60、RSI、KD全部算不出來或是初期暖機失真值。抓完再切成使用者實際要看的
+# 顯示區間。（原本想連年化報酬／波動度也固定抓滿一年，但證交所的API逐月呼叫，實測部署
+# 後對外連線明顯比本機慢，每次查詢都被迫多抓將近一年資料會拖到3分鐘以上，得不償失，
+# 所以年化數字維持用這裡實際抓到的區間計算，不额外強制抓滿一年。）
+calc_start_date = start_date - timedelta(days=120)
 
 with st.spinner(LOADING_PRICE):
     price_df_full, used_ticker = fetch_price(stock_code_input, calc_start_date, end_date)
@@ -131,11 +132,7 @@ price_df_full["RSI"] = compute_rsi(price_df_full["Close"])
 price_df_full["K"], price_df_full["D"] = compute_kd(price_df_full)
 price_df_full["ATR14"] = compute_atr(price_df_full)
 
-# 年化報酬／波動度固定用近一年，不受上面選的顯示區間影響（見 explain/texts.py 的
-# ANNUAL_METRIC_EXPLAIN，畫面上也會標明「近一年」，避免使用者以為這數字會隨區間變動）。
-annual_window_start = end_date - timedelta(days=365)
-annual_df = price_df_full.loc[price_df_full.index.date >= annual_window_start]
-metrics = compute_return_risk(annual_df["Close"])
+metrics = compute_return_risk(price_df_full["Close"])
 if metrics is None:
     st.warning(ERROR_INSUFFICIENT_METRICS)
     st.stop()
