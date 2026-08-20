@@ -28,6 +28,7 @@ import requests
 import streamlit as st
 
 from config import CACHE_TTL_PRICE, CACHE_TTL_STOCK_NAME, FINMIND_API_URL, TWSE_STOCK_DAY_URL
+from data.finmind_auth import get_finmind_token
 
 _HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
@@ -44,8 +45,10 @@ def _to_float(text: str) -> float:
     return float(str(text).replace(",", ""))
 
 
-def _fetch_twse_month(stock_code: str, month_start: date) -> pd.DataFrame:
-    """跟證交所 STOCK_DAY 拿一個月的上市股票日 K，抓不到／格式跑掉一律回傳空 DataFrame。"""
+def _fetch_twse_month(stock_code: str, month_start: date) -> tuple[pd.DataFrame, bool]:
+    """跟證交所 STOCK_DAY 拿一個月的上市股票日 K。回傳 (df, reachable)：reachable=False
+    代表這次連線本身失敗（逾時／連不上／格式跑掉），不是「這支股票真的沒有資料」——
+    呼叫端要分開處理，不然使用者會把「證交所暫時連不上」誤會成「代號打錯」。"""
     try:
         resp = requests.get(
             TWSE_STOCK_DAY_URL,
@@ -55,10 +58,10 @@ def _fetch_twse_month(stock_code: str, month_start: date) -> pd.DataFrame:
         )
         payload = resp.json()
     except Exception:
-        return pd.DataFrame()
+        return pd.DataFrame(), False
 
     if payload.get("stat") != "OK" or not payload.get("data"):
-        return pd.DataFrame()
+        return pd.DataFrame(), True
 
     rows = []
     for row in payload["data"]:
@@ -80,31 +83,32 @@ def _fetch_twse_month(stock_code: str, month_start: date) -> pd.DataFrame:
             continue
 
     if not rows:
-        return pd.DataFrame()
+        return pd.DataFrame(), True
     df = pd.DataFrame(rows).set_index("Date")
     df.index = pd.to_datetime(df.index)
-    return df
+    return df, True
 
 
-def _fetch_finmind_range(stock_code: str, start: date, end: date) -> pd.DataFrame:
-    """上櫃股票的補充來源：FinMind（見檔頭說明）。一次可以查整個區間，不用像 TWSE 那樣逐月呼叫。"""
+def _fetch_finmind_range(stock_code: str, start: date, end: date) -> tuple[pd.DataFrame, bool]:
+    """上櫃股票的補充來源：FinMind（見檔頭說明）。一次可以查整個區間，不用像 TWSE 那樣逐月呼叫。
+    回傳 (df, reachable)，reachable 的意義同 _fetch_twse_month。"""
+    params = {
+        "dataset": "TaiwanStockPrice",
+        "data_id": stock_code,
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+    }
+    token = get_finmind_token()
+    if token:
+        params["token"] = token
     try:
-        resp = requests.get(
-            FINMIND_API_URL,
-            params={
-                "dataset": "TaiwanStockPrice",
-                "data_id": stock_code,
-                "start_date": start.isoformat(),
-                "end_date": end.isoformat(),
-            },
-            timeout=15,
-        )
+        resp = requests.get(FINMIND_API_URL, params=params, timeout=15)
         payload = resp.json()
     except Exception:
-        return pd.DataFrame()
+        return pd.DataFrame(), False
 
     if payload.get("status") != 200 or not payload.get("data"):
-        return pd.DataFrame()
+        return pd.DataFrame(), True
 
     rows = []
     for row in payload["data"]:
@@ -123,18 +127,24 @@ def _fetch_finmind_range(stock_code: str, start: date, end: date) -> pd.DataFram
             continue
 
     if not rows:
-        return pd.DataFrame()
+        return pd.DataFrame(), True
     df = pd.DataFrame(rows).set_index("Date")
     df.index = pd.to_datetime(df.index)
-    return df
+    return df, True
 
 
 @st.cache_data(ttl=CACHE_TTL_PRICE, show_spinner=False)
 def fetch_price(stock_code: str, start: date, end: date):
-    """抓取台股日 K 資料。先試上市（證交所 STOCK_DAY），查不到再試上櫃（FinMind）。"""
+    """抓取台股日 K 資料。先試上市（證交所 STOCK_DAY），查不到再試上櫃（FinMind）。
+    回傳 (df_or_None, ticker, error_reason)。error_reason 只在 df 是 None 時有意義：
+    "not_found" = 資料來源都有回應，只是查不到這支股票（代號打錯、下市、非股票類）；
+    "source_unreachable" = 資料來源本身連不上或逾時，不是股票代號的問題，重試可能就好了。
+    這兩種原因呼叫端要用不同的話跟使用者說，不然會把「來源掛掉」誤會成「你打錯代號」。"""
     frames = []
+    any_reachable = False
     for month_start in _month_starts(start, end):
-        frame = _fetch_twse_month(stock_code, month_start)
+        frame, reachable = _fetch_twse_month(stock_code, month_start)
+        any_reachable = any_reachable or reachable
         if not frame.empty:
             frames.append(frame)
         time.sleep(0.15)  # 對官方 API 客氣一點，避免短時間內大量請求又被限流
@@ -146,16 +156,18 @@ def fetch_price(stock_code: str, start: date, end: date):
         df = df.dropna(subset=["Close"])
         if not df.empty:
             df["Volume"] = (df["Volume"] / 1000).round().astype(int)  # 股數換算成張，台灣人講量一律講「張」
-            return df, f"{stock_code}.TW"
+            return df, f"{stock_code}.TW", None
 
     # TWSE 查不到，可能是上櫃股票，改試 FinMind
-    df = _fetch_finmind_range(stock_code, start, end)
+    df, finmind_reachable = _fetch_finmind_range(stock_code, start, end)
+    any_reachable = any_reachable or finmind_reachable
     df = df.dropna(subset=["Close"]) if not df.empty else df
     if not df.empty:
         df["Volume"] = (df["Volume"] / 1000).round().astype(int)
-        return df, f"{stock_code}.TWO"
+        return df, f"{stock_code}.TWO", None
 
-    return None, f"{stock_code}.TW"
+    error_reason = "not_found" if any_reachable else "source_unreachable"
+    return None, f"{stock_code}.TW", error_reason
 
 
 @st.cache_data(ttl=CACHE_TTL_STOCK_NAME, show_spinner=False)

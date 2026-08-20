@@ -171,4 +171,5 @@ def horizon_badge_html(label: str) -> str:
     return badge(label, bg, fg)
 
 
-TRAFFIC_LIGHT_EMOJI = {"green": "🟢", "yellow": "🟡", "red": "🔴"}
+# 顏色以外還有形狀差異（打勾／警告三角／禁止），紅綠色盲的人也能一眼分辨，不是純靠顏色。
+TRAFFIC_LIGHT_EMOJI = {"green": "✅", "yellow": "⚠️", "red": "⛔"}

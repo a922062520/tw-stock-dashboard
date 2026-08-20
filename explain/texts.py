@@ -195,6 +195,7 @@ SIGNAL_TEXTS = {
 ERROR_TICKER_MAP_UNAVAILABLE = "目前無法取得股票代號對照表，請直接輸入代號查詢（例如 2330），或按下面的按鈕再試一次。"
 ERROR_NAME_NOT_FOUND = "找不到「{query}」，請確認名稱是否正確，或直接輸入代號查詢。"
 ERROR_NO_PRICE_DATA = "查不到「{code}」在這段期間的資料，請確認股票代號是否正確，或換一個日期區間再試一次。"
+ERROR_PRICE_SOURCE_UNREACHABLE = "資料來源（證交所／FinMind）現在暫時連不上，不是「{code}」這個代號有問題，過一下再試一次應該就會恢復。"
 ERROR_CHIP_DATA_FAILED = "籌碼資料現在抓不到，已經略過這個區塊，不影響其他資訊。"
 ERROR_NO_CHIP_DATA = "目前查不到這支股票的籌碼資料（可能是證交所現在沒有回應、這支股票不是上市股票、或這段期間沒有交易資料）。"
 ERROR_NO_NEWS = "目前查不到相關新聞，或新聞來源現在連不上，稍後可以再試一次。"

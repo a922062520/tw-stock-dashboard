@@ -29,6 +29,7 @@ from explain.texts import (
     ERROR_NO_FUNDAMENTALS,
     ERROR_NO_NEWS,
     ERROR_NO_PRICE_DATA,
+    ERROR_PRICE_SOURCE_UNREACHABLE,
     LOADING_PRICE,
 )
 from styles import inject_css, render_html
@@ -95,14 +96,17 @@ if not stock_code_input:
 # 區間本來會讓MA60、RSI、KD全部算不出來或是初期暖機失真值。抓完再切成使用者實際要看的
 # 顯示區間。（原本想連年化報酬／波動度也固定抓滿一年，但證交所的API逐月呼叫，實測部署
 # 後對外連線明顯比本機慢，每次查詢都被迫多抓將近一年資料會拖到3分鐘以上，得不償失，
-# 所以年化數字維持用這裡實際抓到的區間計算，不额外強制抓滿一年。）
+# 所以年化數字維持用這裡實際抓到的區間計算，不額外強制抓滿一年。）
 calc_start_date = start_date - timedelta(days=120)
 
 with st.spinner(LOADING_PRICE):
-    price_df_full, used_ticker = fetch_price(stock_code_input, calc_start_date, end_date)
+    price_df_full, used_ticker, price_error_reason = fetch_price(stock_code_input, calc_start_date, end_date)
 
 if price_df_full is None or price_df_full.empty:
-    st.error(ERROR_NO_PRICE_DATA.format(code=stock_code_input))
+    if price_error_reason == "source_unreachable":
+        st.error(ERROR_PRICE_SOURCE_UNREACHABLE.format(code=stock_code_input))
+    else:
+        st.error(ERROR_NO_PRICE_DATA.format(code=stock_code_input))
     st.stop()
 
 stock_name = matched_name or fetch_stock_name(used_ticker)
@@ -172,6 +176,8 @@ st.download_button(
     file_name=f"{stock_code_input}_分析摘要_{today_taipei().isoformat()}.txt",
     mime="text/plain",
 )
+with st.expander("或直接複製文字（平板上下載的檔案常常找不到，這個比較方便）"):
+    st.code(summary_text, language=None)
 
 st.divider()
 
@@ -203,9 +209,12 @@ if compare_codes:
     compare_names = {stock_code_input: stock_name or ""}
     for code in compare_codes:
         with st.spinner(f"查詢 {code} 中..."):
-            cmp_df, cmp_ticker = fetch_price(code, start_date, end_date)
+            cmp_df, cmp_ticker, cmp_error_reason = fetch_price(code, start_date, end_date)
         if cmp_df is None or cmp_df.empty:
-            st.warning(f"查不到 {code} 的股價資料，這檔先跳過比較。")
+            if cmp_error_reason == "source_unreachable":
+                st.warning(f"{code} 的資料來源暫時連不上，這檔先跳過比較，稍後可以再試一次。")
+            else:
+                st.warning(f"查不到 {code} 的股價資料，這檔先跳過比較。")
             continue
         compare_dfs[code] = cmp_df
         compare_names[code] = fetch_stock_name(cmp_ticker) or ""

@@ -202,9 +202,27 @@ def render_date_range_controls():
 
 
 def render_date_dropdown(price_df):
-    """K 棒點選以外的另一個入口：日期下拉選單，平板手指不容易精準點中 K 棒時可以用這個。"""
+    """K 棒點選以外的另一個入口：日期下拉選單，平板手指不容易精準點中 K 棒時可以用這個。
+    旁邊加「前一天／後一天」按鈕，看完一天想看隔壁那天不用重新展開選單找。"""
     options = list(price_df.index)
     labels = [d.date().isoformat() for d in options]
-    choice_label = st.selectbox("選擇日期查看單日行情", labels, index=len(labels) - 1, key="date_dropdown")
+
+    current_label = st.session_state.get("date_dropdown", labels[-1])
+    if current_label not in labels:
+        current_label = labels[-1]
+    current_idx = labels.index(current_label)
+
+    prev_col, next_col, dropdown_col = st.columns([1, 1, 3])
+    with prev_col:
+        if st.button("◀ 前一天", key="date_prev", disabled=current_idx <= 0, use_container_width=True):
+            st.session_state["date_dropdown"] = labels[current_idx - 1]
+            st.rerun()
+    with next_col:
+        if st.button("後一天 ▶", key="date_next", disabled=current_idx >= len(labels) - 1, use_container_width=True):
+            st.session_state["date_dropdown"] = labels[current_idx + 1]
+            st.rerun()
+    with dropdown_col:
+        choice_label = st.selectbox("選擇日期查看單日行情", labels, index=len(labels) - 1, key="date_dropdown")
+
     idx = labels.index(choice_label)
     return options[idx]

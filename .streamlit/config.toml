@@ -1,10 +1,15 @@
 [theme]
 base = "light"
-primaryColor = "#2563eb"
-backgroundColor = "#f7f9fc"
-secondaryBackgroundColor = "#ffffff"
-textColor = "#1e293b"
+primaryColor = "#1d3557"
+backgroundColor = "#f7f4ec"
+secondaryBackgroundColor = "#faf8f2"
+textColor = "#2b2822"
 font = "sans serif"
 
 [browser]
 gatherUsageStats = false
+
+[client]
+# 長輩看到整片紅色的Python錯誤堆疊會嚇到，未預期的例外一律顯示白話訊息就好，
+# 技術細節只留在後台log（Manage app > Logs），不顯示在使用者畫面上。
+showErrorDetails = "none"
