@@ -205,7 +205,7 @@ def render_signal_cards(signal_keys: list[str]) -> None:
             <div class="explain-card">
                 <div style="margin-bottom:6px;"><b>{text['title']}</b></div>
                 <div style="margin-bottom:4px;">{text['meaning']}</div>
-                <div style="color:#64748b;">{text['caution']}</div>
+                <div style="color:#6b6353;">{text['caution']}</div>
             </div>
         """)
 

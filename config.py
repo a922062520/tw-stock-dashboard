@@ -9,19 +9,19 @@ from __future__ import annotations
 # 色票（紅漲綠跌，台股慣例，貫穿所有圖表與元件）
 # ---------------------------------------------------------------------------
 COLORS = {
-    "text": "#1e293b",
-    "subtext": "#64748b",
-    "grid": "#eef1f6",
-    "accent": "#2563eb",       # 收盤價主線
+    "text": "#2b2822",
+    "subtext": "#6b6353",
+    "grid": "#ece6d8",
+    "accent": "#1d3557",       # 收盤價主線（深藏青，取代原本的科技藍，更有金融穩重感）
     "ma20": "#f59e0b",         # 月線
     "ma60": "#8b5cf6",         # 季線
     "up": "#e5484d",           # 漲／買超（台股慣例：紅漲）
     "down": "#12b76a",         # 跌／賣超（台股慣例：綠跌）
-    "k_line": "#2563eb",
+    "k_line": "#1d3557",
     "d_line": "#f59e0b",
     "overbought_zone": "rgba(229, 72, 77, 0.07)",
     "oversold_zone": "rgba(18, 183, 106, 0.07)",
-    "foreign": "#2563eb",
+    "foreign": "#1d3557",
     "trust": "#f59e0b",
     "dealer": "#8b5cf6",
     "green_light": "#12b76a",

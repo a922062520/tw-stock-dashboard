@@ -241,13 +241,13 @@ with st.expander("查看近期相關新聞", expanded=True):
         st.caption(ERROR_NO_NEWS)
     else:
         rows = "".join(
-            f'<div style="padding:10px 14px;border-bottom:1px solid #edf1f7;">'
-            f'<a href="{html_lib.escape(n["link"])}" target="_blank" style="color:#1e293b;font-weight:600;text-decoration:none;">{html_lib.escape(n["title"])}</a>'
-            f'<div style="color:#94a3b8;font-size:16px;margin-top:2px;">{html_lib.escape(n["source"])}　{html_lib.escape(n["pubDate"])}</div>'
+            f'<div style="padding:10px 14px;border-bottom:1px solid #e6ddc8;">'
+            f'<a href="{html_lib.escape(n["link"])}" target="_blank" style="color:#2b2822;font-weight:600;text-decoration:none;">{html_lib.escape(n["title"])}</a>'
+            f'<div style="color:#8b8266;font-size:16px;margin-top:2px;">{html_lib.escape(n["source"])}　{html_lib.escape(n["pubDate"])}</div>'
             "</div>"
             for n in news_items
         )
-        render_html(f'<div style="background:#ffffff;border:1px solid #e5e9f0;border-radius:12px;overflow:hidden;">{rows}</div>')
+        render_html(f'<div style="background:#ffffff;border:1px solid #e6ddc8;border-radius:12px;overflow:hidden;">{rows}</div>')
         st.caption("新聞來源：Google 新聞，僅供參考，請自行判斷真實性與時效性，不代表本工具立場。")
 
 st.divider()
