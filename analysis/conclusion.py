@@ -99,20 +99,30 @@ def build_analysis_conclusion(price_df: pd.DataFrame, annual_return: float, annu
 def classify_traffic_light(concl: dict) -> dict:
     """把分析結論轉成紅黃綠燈分類。這是「參考規則」，不是投資訊號，措辭一律不用買賣字眼。
 
-    規則（供日後調整參考）：
-    - 紅燈：年化波動度屬高風險，或目前價格明顯高於參考進場價（entry_gap_pct <= -5%，代表偏熱）。
-    - 綠燈：風險屬低風險、目前價格未明顯高於參考進場價（entry_gap_pct >= -1%），且趨勢判斷為中長期。
+    規則（供日後調整參考。門檻於2026-08-20用scripts/health_check_traffic_light.py
+    實測66檔常見台股校正過——原本綠燈0%從未出現、紅燈73.5%又幾乎都是被波動度門檻
+    拉高，且「追高風險」的紅燈裡有8成其實是盤整/下跌股，用詞對不上。校正重點：
+    1. 波動度門檻交給 risk_label 統一處理（見 analysis/metrics.py 的說明）。
+    2. 「追高」的紅燈只在真的處於上升趨勢（trend_strength > 0）時才成立，
+       避免把盤整或下跌股也說成「追高風險大」。
+    3. 綠燈的價格容忍度從 -1% 放寬到 -3%，門檻不再幾乎不可能同時滿足）：
+    - 紅燈：年化波動度屬高風險，或處於上升趨勢中目前價格明顯高於參考進場價
+      （entry_gap_pct <= -5%，代表真的在追高，而不是盤整/下跌股的合理買點本來就比較低）。
+    - 綠燈：風險屬低風險、目前價格沒有明顯高於參考進場價（entry_gap_pct >= -3%），
+      且趨勢判斷為中長期。
     - 其餘（含資料不足、盤整、中風險等中性情況）一律黃燈。
     """
     risk_lvl = concl["risk_lvl"]
     horizon = concl["horizon"]
     entry_gap_pct = concl["entry_gap_pct"]
+    trend_strength = concl["trend_strength"]
+    is_rallying = trend_strength is not None and trend_strength > 0
 
-    if risk_lvl == "高風險" or entry_gap_pct <= -0.05:
+    if risk_lvl == "高風險" or (entry_gap_pct <= -0.05 and is_rallying):
         reason_kind = "high_vol" if risk_lvl == "高風險" else "overheated"
         return {"light": "red", "reason_kind": reason_kind}
 
-    if risk_lvl == "低風險" and entry_gap_pct >= -0.01 and horizon == "中長期":
+    if risk_lvl == "低風險" and entry_gap_pct >= -0.03 and horizon == "中長期":
         return {"light": "green", "reason_kind": "stable"}
 
     if horizon == "資料不足以判斷":

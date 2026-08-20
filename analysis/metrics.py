@@ -18,9 +18,12 @@ def compute_return_risk(close: pd.Series):
 
 
 def risk_label(vol: float) -> str:
-    if vol < 0.20:
+    """門檻經健檢腳本（scripts/health_check_traffic_light.py）用66檔常見台股實測校正過：
+    原本 20%／40% 的門檻是通用標準，但台股（尤其電子股）年化波動度常態就超過40%，
+    導致九成以上的股票都落在「高風險」，紅燈etc失去區分度。改成30%／60%後分布更合理。"""
+    if vol < 0.30:
         return "低風險"
-    elif vol < 0.40:
+    elif vol < 0.60:
         return "中風險"
     else:
         return "高風險"
