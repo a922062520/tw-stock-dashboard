@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import html as html_lib
-from datetime import date
 
 import streamlit as st
 
@@ -61,6 +60,7 @@ from ui.layout import (
     render_search_section,
     render_watchlist_section,
     render_watchlist_toggle_button,
+    today_taipei,
 )
 
 st.set_page_config(page_title="台股分析儀表板", layout="wide")
@@ -106,6 +106,18 @@ with header_col:
 with watch_btn_col:
     render_watchlist_toggle_button(stock_code_input)
 
+latest_date_full = price_df.index[-1].strftime("%Y/%m/%d")
+latest_date_label = price_df.index[-1].strftime("%m/%d")
+banner_col, refresh_col = st.columns([5, 2])
+with banner_col:
+    st.caption(f"📅 資料截至 {latest_date_full} 收盤，盤中不會即時更新（隔天約上午8點後更新前一交易日資料）")
+with refresh_col:
+    if st.button("🔄 重新整理最新資料", key="refresh_data", use_container_width=True):
+        fetch_price.clear()
+        fetch_fundamentals_info.clear()
+        fetch_dividend_history.clear()
+        st.rerun()
+
 price_df = add_moving_averages(price_df)
 price_df["RSI"] = compute_rsi(price_df["Close"])
 price_df["K"], price_df["D"] = compute_kd(price_df)
@@ -125,17 +137,17 @@ prev_close = float(price_df["Close"].iloc[-2]) if len(price_df) >= 2 else None
 day_change_pct = (concl["close_now"] - prev_close) / prev_close if prev_close else None
 
 # ---- 第一層：現在多少錢、一句話結論＋燈號（打開就看到，不用捲動）----------------
-render_traffic_light_card(concl, light_info, day_change_pct)
+render_traffic_light_card(concl, light_info, day_change_pct, latest_date_label)
 render_signal_cards(signal_keys)
 
 summary_text = build_summary_text(
     stock_code_input, stock_name, concl, light_info, day_change_pct,
-    annual_return, annual_vol, date.today().isoformat(),
+    annual_return, annual_vol, today_taipei().isoformat(),
 )
 st.download_button(
     "⬇️ 下載本頁分析摘要（文字檔，可傳給家人）",
     data=summary_text,
-    file_name=f"{stock_code_input}_分析摘要_{date.today().isoformat()}.txt",
+    file_name=f"{stock_code_input}_分析摘要_{today_taipei().isoformat()}.txt",
     mime="text/plain",
 )
 

@@ -5,13 +5,22 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import streamlit as st
 
 from config import DEFAULT_RANGE_DAYS, RANGE_PRESETS
 from data.ticker_map import search_stock_by_name
 from explain.texts import ERROR_NAME_NOT_FOUND, ERROR_TICKER_MAP_UNAVAILABLE, RETRY_BUTTON_LABEL
+
+TAIPEI_TZ = ZoneInfo("Asia/Taipei")
+
+
+def today_taipei() -> date:
+    """伺服器（Streamlit Cloud）跑在UTC，直接用date.today()在台灣時間凌晨0-8點會誤判成前一天，
+    所有跟「今天」有關的判斷一律要走這個函式，不要用date.today()。"""
+    return datetime.now(TAIPEI_TZ).date()
 
 
 def remember_stock(code: str, name: str | None) -> None:
@@ -178,10 +187,10 @@ def render_date_range_controls():
             st.session_state["range_days"] = days
             st.rerun()
 
-    end_date = date.today()
+    end_date = today_taipei()
     start_date = end_date - timedelta(days=st.session_state["range_days"])
 
-    with st.expander("自訂日期區間（進階，一般不需要調整）", expanded=True):
+    with st.expander("自訂日期區間（進階，一般不需要調整）", expanded=False):
         custom = st.date_input(
             "自訂區間", value=(start_date, end_date), min_value=date(2000, 1, 1), max_value=end_date,
             label_visibility="collapsed",

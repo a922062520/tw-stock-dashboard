@@ -123,15 +123,16 @@ def render_daily_kpi_card(price_df: pd.DataFrame, selected_date) -> None:
 # ---------------------------------------------------------------------------
 # 第一層：紅黃綠燈結論卡（一句話結論，打開就看到，不用捲動）
 # ---------------------------------------------------------------------------
-def render_traffic_light_card(concl: dict, light_info: dict, day_change_pct: float | None) -> None:
+def render_traffic_light_card(concl: dict, light_info: dict, day_change_pct: float | None, latest_date_label: str = "") -> None:
     emoji = TRAFFIC_LIGHT_EMOJI[light_info["light"]]
     headline = TRAFFIC_LIGHT_TEXT[(light_info["light"], light_info["reason_kind"])]
 
     with st.container(border=True):
         price_col, light_col = st.columns([1, 2])
         with price_col:
+            price_label = f"最新收盤價（{latest_date_label}）" if latest_date_label else "最新收盤價"
             st.metric(
-                "目前價格",
+                price_label,
                 f"{concl['close_now']:.2f}",
                 f"{day_change_pct*100:+.2f}%" if day_change_pct is not None else None,
                 delta_color="inverse",  # 台股慣例：紅漲綠跌
