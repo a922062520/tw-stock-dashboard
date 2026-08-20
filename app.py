@@ -12,7 +12,7 @@ import html as html_lib
 import streamlit as st
 
 from analysis.conclusion import build_analysis_conclusion, classify_traffic_light
-from analysis.fundamentals import summarize_dividends, summarize_profit
+from analysis.fundamentals import summarize_dividends, summarize_profit, summarize_valuation
 from analysis.indicators import add_moving_averages, compute_atr, compute_kd, compute_rsi
 from analysis.metrics import analyze_chip_trend, classify_kd, classify_rsi, compute_return_risk
 from analysis.signals import detect_signals
@@ -42,6 +42,7 @@ from ui.cards import (
     render_rsi_analysis,
     render_signal_cards,
     render_traffic_light_card,
+    render_valuation_card,
     resolve_selected_date,
 )
 from ui.charts import (
@@ -204,6 +205,8 @@ with st.expander("查看獲利與股利", expanded=True):
     else:
         profit_summary = summarize_profit(fundamentals_info)
         dividend_summary = summarize_dividends(dividend_history)
+        valuation = summarize_valuation(concl["close_now"], profit_summary, dividend_summary)
+        render_valuation_card(valuation)
         render_fundamentals_card(profit_summary, dividend_summary)
 
 with st.expander("查看技術指標（RSI、KD、年化報酬與波動度）", expanded=True):

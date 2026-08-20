@@ -300,3 +300,27 @@ def render_fundamentals_card(profit_summary: dict, dividend_summary: dict) -> No
         st.write(DIVIDEND_SUMMARY_TEXT_NONE)
 
     st.caption(FUNDAMENTALS_DISCLAIMER)
+
+
+def render_valuation_card(valuation: dict) -> None:
+    """殖利率／本益比／連續配息年數——存股族最常看的三個數字，都是上面兩個區塊
+    （EPS、股利）已經抓到的資料相除而已。用目前股價當分母，是簡化估算不是嚴謹財報估值。"""
+    if not valuation.get("available"):
+        return
+    st.markdown("#### 存股族常看的三個數字")
+    c1, c2, c3 = st.columns(3)
+    pe = valuation.get("pe_ratio")
+    c1.metric("本益比", f"{pe:.1f} 倍" if pe is not None else "查不到")
+    dy = valuation.get("dividend_yield")
+    c2.metric("現金殖利率", f"{dy*100:.1f}%" if dy is not None else "查不到")
+    years = valuation.get("consecutive_years", 0)
+    c3.metric("連續配息", f"{years} 年" if years else "查不到")
+
+    avg5 = valuation.get("avg_yield_5y")
+    avg_years = valuation.get("avg_yield_years", 0)
+    if avg5 is not None and avg_years:
+        st.caption(
+            f"近 {avg_years} 年平均殖利率約 {avg5*100:.1f}%"
+            "（用目前股價回推每一年的股利，不是各年度當時的股價，僅供參考）。"
+            "本益比、殖利率都是用目前股價計算，僅供參考，不是嚴謹的財報估值。"
+        )
