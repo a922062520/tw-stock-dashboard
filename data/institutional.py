@@ -14,6 +14,7 @@ import requests
 import streamlit as st
 
 from config import CACHE_TTL_CHIP_DAY, FINMIND_API_URL
+from data.finmind_auth import get_finmind_token
 
 # FinMind 用英文代稱區分五個法人子類別，對應到畫面上習慣的三大分類：
 # 外資買賣超＝外資及陸資（不含外資自營商）；自營商買賣超＝自行買賣＋避險合計。
@@ -26,17 +27,17 @@ _DEALER_HEDGING = "Dealer_Hedging"
 
 @st.cache_data(ttl=CACHE_TTL_CHIP_DAY, show_spinner=False)
 def _fetch_finmind_chip_raw(stock_code: str, start: date, end: date):
+    params = {
+        "dataset": "TaiwanStockInstitutionalInvestorsBuySell",
+        "data_id": stock_code,
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+    }
+    token = get_finmind_token()
+    if token:
+        params["token"] = token
     try:
-        resp = requests.get(
-            FINMIND_API_URL,
-            params={
-                "dataset": "TaiwanStockInstitutionalInvestorsBuySell",
-                "data_id": stock_code,
-                "start_date": start.isoformat(),
-                "end_date": end.isoformat(),
-            },
-            timeout=15,
-        )
+        resp = requests.get(FINMIND_API_URL, params=params, timeout=15)
         payload = resp.json()
     except Exception:
         return None

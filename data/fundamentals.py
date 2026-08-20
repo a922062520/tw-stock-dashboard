@@ -14,6 +14,7 @@ import streamlit as st
 import yfinance as yf
 
 from config import CACHE_TTL_FUNDAMENTALS, FINMIND_API_URL
+from data.finmind_auth import get_finmind_token
 
 
 def _bare_code(ticker: str) -> str:
@@ -22,12 +23,12 @@ def _bare_code(ticker: str) -> str:
 
 def _fetch_finmind_fundamentals(stock_code: str) -> dict:
     """用最近四季的財報資料算近似的 EPS／營收／淨利率（trailing 概念，非官方 TTM 精算）。"""
+    params = {"dataset": "TaiwanStockFinancialStatements", "data_id": stock_code, "start_date": "2024-01-01"}
+    token = get_finmind_token()
+    if token:
+        params["token"] = token
     try:
-        resp = requests.get(
-            FINMIND_API_URL,
-            params={"dataset": "TaiwanStockFinancialStatements", "data_id": stock_code, "start_date": "2024-01-01"},
-            timeout=15,
-        )
+        resp = requests.get(FINMIND_API_URL, params=params, timeout=15)
         payload = resp.json()
     except Exception:
         return {}
@@ -71,12 +72,12 @@ def _fetch_finmind_fundamentals(stock_code: str) -> dict:
 
 
 def _fetch_finmind_dividends(stock_code: str) -> pd.Series | None:
+    params = {"dataset": "TaiwanStockDividend", "data_id": stock_code, "start_date": "2010-01-01"}
+    token = get_finmind_token()
+    if token:
+        params["token"] = token
     try:
-        resp = requests.get(
-            FINMIND_API_URL,
-            params={"dataset": "TaiwanStockDividend", "data_id": stock_code, "start_date": "2010-01-01"},
-            timeout=15,
-        )
+        resp = requests.get(FINMIND_API_URL, params=params, timeout=15)
         payload = resp.json()
     except Exception:
         return None
