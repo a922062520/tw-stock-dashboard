@@ -24,10 +24,14 @@ def today_taipei() -> date:
 
 
 def remember_stock(code: str, name: str | None) -> None:
-    """把這次查詢的股票記到本次瀏覽的 session_state，關掉瀏覽器就清空，不寫入任何檔案。"""
+    """把這次查詢的股票記到本次瀏覽的 session_state，關掉瀏覽器就清空，不寫入任何檔案；
+    同時把代號同步進網址列（?code=2330），方便分享網址給家人直接看到同一檔股票。"""
     recents = [r for r in st.session_state.get("recent_stocks", []) if r["code"] != code]
     recents.insert(0, {"code": code, "name": name or ""})
     st.session_state["recent_stocks"] = recents[:8]
+
+    if st.query_params.get("code") != code:
+        st.query_params["code"] = code
 
 
 def render_recent_stocks() -> None:
@@ -114,7 +118,9 @@ def render_search_section(name_map: dict, name_map_error: str | None):
     render_recent_stocks()
 
     if "search_text" not in st.session_state:
-        st.session_state["search_text"] = "2330"
+        # 網址帶著代號的話（?code=2330）優先用它，這樣分享網址給家人才能直接看到
+        # 同一檔股票，不用重新打一次代號。
+        st.session_state["search_text"] = st.query_params.get("code", "2330")
 
     raw_input = st.text_input(
         "台股代號或中文名稱",

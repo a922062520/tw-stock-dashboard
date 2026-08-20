@@ -80,6 +80,9 @@ TRAFFIC_LIGHT_TEXT = {
     ("yellow", "insufficient"): "資料還不夠多，暫時看不出明顯方向，可以拉長查詢區間再參考看看。",
     ("yellow", "neutral"): "現在方向不太明朗，可以再觀察一陣子。",
 }
+# analysis/conclusion.py 未來如果加了新的 (light, reason_kind) 組合卻忘記在上面補文案，
+# 用這個當保底，不要讓使用者看到整頁錯誤——沒有訊息可以顯示，也比程式當掉好。
+TRAFFIC_LIGHT_TEXT_FALLBACK = "目前狀況不太確定，可以再觀察一陣子。"
 
 # 分析結論卡固定附帶的免責句（每張結論卡都要有）
 DISCLAIMER_ANALYSIS = "以上是電腦依照歷史股價算出來的參考，不是投資保證，也不是專業建議，請自行評估風險，必要時諮詢專業顧問。"

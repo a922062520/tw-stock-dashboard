@@ -206,6 +206,13 @@ st.caption("紅K＝收盤價高於開盤價，綠K＝收盤價低於開盤價；
 price_chart_event = render_price_chart(price_df, dividend_history)
 missing_dates = get_missing_dates(price_df.index)
 
+# 換股票的時候，單日行情的選取狀態（下拉選單、K棒點選記錄）要重置，不然新股票會
+# 沿用舊股票剛好也存在的日期字串，KPI卡不會自動跳回最新一天，長輩會以為資料沒更新。
+if st.session_state.get("_date_nav_stock") != stock_code_input:
+    for key in ("date_dropdown", "_prev_chart_date", "_prev_dropdown_date"):
+        st.session_state.pop(key, None)
+    st.session_state["_date_nav_stock"] = stock_code_input
+
 selected_date_dropdown = render_date_dropdown(price_df)
 selected_date = resolve_selected_date(price_chart_event, price_df, selected_date_dropdown)
 render_daily_kpi_card(price_df, selected_date)

@@ -23,6 +23,7 @@ from explain.texts import (
     SIGNAL_TEXTS,
     STOP_LOSS_EXPLAIN,
     TRAFFIC_LIGHT_TEXT,
+    TRAFFIC_LIGHT_TEXT_FALLBACK,
     chip_trend_text,
     horizon_reason_text,
     rsi_status_text,
@@ -125,7 +126,7 @@ def render_daily_kpi_card(price_df: pd.DataFrame, selected_date) -> None:
 # ---------------------------------------------------------------------------
 def render_traffic_light_card(concl: dict, light_info: dict, day_change_pct: float | None, latest_date_label: str = "") -> None:
     emoji = TRAFFIC_LIGHT_EMOJI[light_info["light"]]
-    headline = TRAFFIC_LIGHT_TEXT[(light_info["light"], light_info["reason_kind"])]
+    headline = TRAFFIC_LIGHT_TEXT.get((light_info["light"], light_info["reason_kind"]), TRAFFIC_LIGHT_TEXT_FALLBACK)
 
     with st.container(border=True):
         price_col, light_col = st.columns([1, 2])
@@ -243,7 +244,7 @@ def build_summary_text(
     query_date: str,
 ) -> str:
     emoji = TRAFFIC_LIGHT_EMOJI[light_info["light"]]
-    headline = TRAFFIC_LIGHT_TEXT[(light_info["light"], light_info["reason_kind"])]
+    headline = TRAFFIC_LIGHT_TEXT.get((light_info["light"], light_info["reason_kind"]), TRAFFIC_LIGHT_TEXT_FALLBACK)
     name_part = f"　{stock_name}" if stock_name else ""
     change_part = f"（{day_change_pct*100:+.2f}%）" if day_change_pct is not None else ""
 
