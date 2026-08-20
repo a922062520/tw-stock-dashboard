@@ -154,10 +154,20 @@ st.download_button(
 
 st.divider()
 
+# 股利資料提早在這裡抓（比獲利股利展開區塊本身還早），因為K線圖要標除息日，
+# 避免除息當天的正常跳空下跌被誤判成破月線之類的假訊號。有 st.cache_data
+# 快取，下面獲利股利區塊要用的時候不會重複打一次網路請求。
+try:
+    fundamentals_info = fetch_fundamentals_info(used_ticker)
+    dividend_history = fetch_dividend_history(used_ticker)
+except Exception:
+    fundamentals_info = {}
+    dividend_history = None
+
 # ---- 第二層：走勢圖、風險等級、參考價位 -------------------------------------
 st.markdown("### 股價走勢")
-st.caption("紅K＝收盤價高於開盤價，綠K＝收盤價低於開盤價；橘線／紫線為月線、季線；下方是成交量。")
-price_chart_event = render_price_chart(price_df)
+st.caption("紅K＝收盤價高於開盤價，綠K＝收盤價低於開盤價；橘線／紫線為月線、季線；下方是成交量；🔻標記為除息日。")
+price_chart_event = render_price_chart(price_df, dividend_history)
 missing_dates = get_missing_dates(price_df.index)
 
 selected_date_dropdown = render_date_dropdown(price_df)
@@ -193,13 +203,6 @@ st.divider()
 
 # ---- 第三層：獲利股利、技術指標、法人籌碼、新聞（收在展開區內，想看才點開）--------
 with st.expander("查看獲利與股利", expanded=True):
-    try:
-        fundamentals_info = fetch_fundamentals_info(used_ticker)
-        dividend_history = fetch_dividend_history(used_ticker)
-    except Exception:
-        fundamentals_info = {}
-        dividend_history = None
-
     if not fundamentals_info and dividend_history is None:
         st.info(ERROR_NO_FUNDAMENTALS)
     else:

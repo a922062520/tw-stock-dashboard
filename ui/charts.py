@@ -33,9 +33,12 @@ def base_layout(height: int, showlegend: bool = True) -> dict:
     )
 
 
-def render_price_chart(price_df: pd.DataFrame):
+def render_price_chart(price_df: pd.DataFrame, dividend_history: pd.Series | None = None):
     """K 線 ＋ MA20/MA60 ＋ 成交量子圖。平板上關掉 rangeslider、簡化 modebar，避免誤觸。
-    保留 on_select="rerun" 點選功能，但呼叫端不能把它當成唯一入口（另外提供日期下拉選單）。"""
+    保留 on_select="rerun" 點選功能，但呼叫端不能把它當成唯一入口（另外提供日期下拉選單）。
+    dividend_history 有給的話，會在除息當天的K棒下方標記，滑過去可以看到「這天除息，
+    價格下跌不是市場賣壓」——原始價（未還原權息）在除息日本來就會出現正常的跳空下跌，
+    沒標記的話很容易被誤判成破月線之類的假訊號。"""
     close_diff = price_df["Close"].diff().fillna(0)
     vol_colors = [COLORS["up"] if v >= 0 else COLORS["down"] for v in close_diff]
     missing_dates = get_missing_dates(price_df.index)
@@ -81,6 +84,24 @@ def render_price_chart(price_df: pd.DataFrame):
         ),
         row=2, col=1,
     )
+
+    if dividend_history is not None and not dividend_history.empty:
+        in_range = dividend_history[
+            (dividend_history.index >= price_df.index.min()) & (dividend_history.index <= price_df.index.max())
+        ]
+        ex_dates = [d for d in in_range.index if d in price_df.index]
+        if ex_dates:
+            marker_y = [float(price_df.loc[d, "Low"]) * 0.985 for d in ex_dates]
+            marker_text = [f"這天除息 {in_range[d]:.2f} 元，價格下跌不是市場賣壓" for d in ex_dates]
+            fig.add_trace(
+                go.Scatter(
+                    x=ex_dates, y=marker_y, name="除息日", mode="markers",
+                    marker=dict(symbol="triangle-down", size=9, color=COLORS["ma20"]),
+                    hovertemplate="%{text}<extra></extra>", text=marker_text,
+                ),
+                row=1, col=1,
+            )
+
     fig.update_layout(**base_layout(height=520))
     fig.update_xaxes(showgrid=False, rangeslider_visible=False, rangebreaks=[dict(values=missing_dates)], row=1, col=1)
     fig.update_xaxes(gridcolor=COLORS["grid"], rangebreaks=[dict(values=missing_dates)], row=2, col=1)
