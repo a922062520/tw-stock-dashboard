@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import html as html_lib
+from datetime import timedelta
 
 import streamlit as st
 
@@ -90,10 +91,16 @@ if not raw_input:
 if not stock_code_input:
     st.stop()
 
-with st.spinner(LOADING_PRICE):
-    price_df, used_ticker = fetch_price(stock_code_input, start_date, end_date)
+# 抓資料時往前多抓一段當「暖機」：季線(MA60)要60個交易日才有值，選「近1個月」這種短
+# 區間本來會讓MA60、RSI、KD全部算不出來或是初期暖機失真值。年化報酬／波動度則固定要
+# 抓近一年資料，不管顯示區間選多短——兩個需求合併成一次抓取，抓完再切成使用者實際要
+# 看的顯示區間，不會多打一次API。
+calc_start_date = min(start_date - timedelta(days=150), end_date - timedelta(days=370))
 
-if price_df is None or price_df.empty:
+with st.spinner(LOADING_PRICE):
+    price_df_full, used_ticker = fetch_price(stock_code_input, calc_start_date, end_date)
+
+if price_df_full is None or price_df_full.empty:
     st.error(ERROR_NO_PRICE_DATA.format(code=stock_code_input))
     st.stop()
 
@@ -107,8 +114,8 @@ with header_col:
 with watch_btn_col:
     render_watchlist_toggle_button(stock_code_input)
 
-latest_date_full = price_df.index[-1].strftime("%Y/%m/%d")
-latest_date_label = price_df.index[-1].strftime("%m/%d")
+latest_date_full = price_df_full.index[-1].strftime("%Y/%m/%d")
+latest_date_label = price_df_full.index[-1].strftime("%m/%d")
 banner_col, refresh_col = st.columns([5, 2])
 with banner_col:
     st.caption(f"📅 資料截至 {latest_date_full} 收盤，盤中不會即時更新（隔天約上午8點後更新前一交易日資料）")
@@ -119,22 +126,39 @@ with refresh_col:
         fetch_dividend_history.clear()
         st.rerun()
 
-price_df = add_moving_averages(price_df)
-price_df["RSI"] = compute_rsi(price_df["Close"])
-price_df["K"], price_df["D"] = compute_kd(price_df)
-price_df["ATR14"] = compute_atr(price_df)
+price_df_full = add_moving_averages(price_df_full)
+price_df_full["RSI"] = compute_rsi(price_df_full["Close"])
+price_df_full["K"], price_df_full["D"] = compute_kd(price_df_full)
+price_df_full["ATR14"] = compute_atr(price_df_full)
 
-metrics = compute_return_risk(price_df["Close"])
+# 年化報酬／波動度固定用近一年，不受上面選的顯示區間影響（見 explain/texts.py 的
+# ANNUAL_METRIC_EXPLAIN，畫面上也會標明「近一年」，避免使用者以為這數字會隨區間變動）。
+annual_window_start = end_date - timedelta(days=365)
+annual_df = price_df_full.loc[price_df_full.index.date >= annual_window_start]
+metrics = compute_return_risk(annual_df["Close"])
 if metrics is None:
     st.warning(ERROR_INSUFFICIENT_METRICS)
     st.stop()
-
 annual_return, annual_vol, daily_ret = metrics
-concl = build_analysis_conclusion(price_df, annual_return, annual_vol, daily_ret)
+
+# 結論用完整的暖機資料算（最新一天的MA20/MA60/ATR/布林通道都已經熱機過，不是空值或
+# 失真的初期值），這步驟要在切成顯示區間之前做。
+concl = build_analysis_conclusion(price_df_full, annual_return, annual_vol, daily_ret)
 light_info = classify_traffic_light(concl)
+
+# 切回使用者實際選的顯示區間。圖表跟「這陣子值得留意的變化」（新高/新低/爆量等）都只看
+# 這段範圍內發生的事，是刻意的設計（文案本來就寫「這段查詢區間內的新高」），跟上面用
+# 完整暖機資料算「結論」是兩回事，不能搞混。
+price_df = price_df_full.loc[
+    (price_df_full.index.date >= start_date) & (price_df_full.index.date <= end_date)
+]
+if price_df.empty:
+    st.error(ERROR_NO_PRICE_DATA.format(code=stock_code_input))
+    st.stop()
+
 signal_keys = detect_signals(price_df)
 
-prev_close = float(price_df["Close"].iloc[-2]) if len(price_df) >= 2 else None
+prev_close = float(price_df_full["Close"].iloc[-2]) if len(price_df_full) >= 2 else None
 day_change_pct = (concl["close_now"] - prev_close) / prev_close if prev_close else None
 
 # ---- 第一層：現在多少錢、一句話結論＋燈號（打開就看到，不用捲動）----------------
