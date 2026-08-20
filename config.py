@@ -48,6 +48,13 @@ FONT_SIZE_BODY = "19px"
 FONT_SIZE_CAPTION = "16px"
 BUTTON_MIN_HEIGHT = "56px"
 
+# 「字體再放大」模式：使用者主動切換後套用的加大字級，約比預設大 25%
+FONT_SIZE_TITLE_LARGE = "37px"
+FONT_SIZE_SUBTITLE_LARGE = "27px"
+FONT_SIZE_BODY_LARGE = "24px"
+FONT_SIZE_CAPTION_LARGE = "20px"
+BUTTON_MIN_HEIGHT_LARGE = "64px"
+
 # ---------------------------------------------------------------------------
 # 外部資料來源
 # ---------------------------------------------------------------------------

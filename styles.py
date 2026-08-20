@@ -15,7 +15,19 @@ from __future__ import annotations
 
 import streamlit as st
 
-from config import BUTTON_MIN_HEIGHT, COLORS, FONT_SIZE_BODY, FONT_SIZE_CAPTION, FONT_SIZE_SUBTITLE, FONT_SIZE_TITLE
+from config import (
+    BUTTON_MIN_HEIGHT,
+    BUTTON_MIN_HEIGHT_LARGE,
+    COLORS,
+    FONT_SIZE_BODY,
+    FONT_SIZE_BODY_LARGE,
+    FONT_SIZE_CAPTION,
+    FONT_SIZE_CAPTION_LARGE,
+    FONT_SIZE_SUBTITLE,
+    FONT_SIZE_SUBTITLE_LARGE,
+    FONT_SIZE_TITLE,
+    FONT_SIZE_TITLE_LARGE,
+)
 
 
 def oneline_html(html_str: str) -> str:
@@ -29,22 +41,28 @@ def render_html(html_str: str) -> None:
     st.markdown(oneline_html(html_str), unsafe_allow_html=True)
 
 
-def inject_css() -> None:
+def inject_css(large_font: bool = False) -> None:
     # 注意：<style> 必須緊接在三引號後面、完全不縮排，內層 CSS 規則的縮排不受影響。
+    title_size = FONT_SIZE_TITLE_LARGE if large_font else FONT_SIZE_TITLE
+    subtitle_size = FONT_SIZE_SUBTITLE_LARGE if large_font else FONT_SIZE_SUBTITLE
+    body_size = FONT_SIZE_BODY_LARGE if large_font else FONT_SIZE_BODY
+    caption_size = FONT_SIZE_CAPTION_LARGE if large_font else FONT_SIZE_CAPTION
+    button_height = BUTTON_MIN_HEIGHT_LARGE if large_font else BUTTON_MIN_HEIGHT
+
     st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
 
 html, body, [class*="css"] {
     font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: """ + FONT_SIZE_BODY + """;
+    font-size: """ + body_size + """;
 }
 .stApp { background-color: #f7f9fc; }
 .block-container { max-width: 900px; padding-top: 1.2rem; }
-h1 { font-size: """ + FONT_SIZE_TITLE + """ !important; font-weight: 900; color: #1e293b; }
-h2, h3 { font-size: """ + FONT_SIZE_SUBTITLE + """ !important; font-weight: 700; color: #1e293b; }
-p, li, label, span { font-size: """ + FONT_SIZE_BODY + """; }
+h1 { font-size: """ + title_size + """ !important; font-weight: 900; color: #1e293b; }
+h2, h3 { font-size: """ + subtitle_size + """ !important; font-weight: 700; color: #1e293b; }
+p, li, label, span { font-size: """ + body_size + """; }
 .section-caption, small, .stCaption, div[data-testid="stCaptionContainer"] {
-    font-size: """ + FONT_SIZE_CAPTION + """ !important;
+    font-size: """ + caption_size + """ !important;
     color: #475569 !important;
 }
 div[data-testid="stVerticalBlockBorderWrapper"] {
@@ -76,14 +94,14 @@ div[data-testid="stMetricValue"] > div {
     overflow: visible !important;
     text-overflow: unset !important;
 }
-div[data-testid="stMetricLabel"] { font-size: """ + FONT_SIZE_CAPTION + """; color: #64748b; }
+div[data-testid="stMetricLabel"] { font-size: """ + caption_size + """; color: #64748b; }
 hr { border-color: #e5e9f0; }
 .badge {
     display: inline-block;
     padding: 5px 16px;
     border-radius: 999px;
     font-weight: 700;
-    font-size: """ + FONT_SIZE_BODY + """;
+    font-size: """ + body_size + """;
 }
 .traffic-light-card {
     display: flex;
@@ -94,8 +112,8 @@ hr { border-color: #e5e9f0; }
 .traffic-light-emoji { font-size: 2.4rem; line-height: 1; }
 .traffic-light-headline { font-size: 1.35rem; font-weight: 700; color: #1e293b; }
 .stButton > button, .stDownloadButton > button {
-    min-height: """ + BUTTON_MIN_HEIGHT + """;
-    font-size: """ + FONT_SIZE_BODY + """;
+    min-height: """ + button_height + """;
+    font-size: """ + body_size + """;
     font-weight: 600;
     border-radius: 12px;
     padding: 8px 18px;
@@ -114,8 +132,8 @@ hr { border-color: #e5e9f0; }
     div[data-testid="stColumn"] .stButton > button { width: 100%; }
 }
 .stApp { overflow-x: hidden; }
-div[data-baseweb="select"] { min-height: """ + BUTTON_MIN_HEIGHT + """; font-size: """ + FONT_SIZE_BODY + """; }
-input[type="text"] { min-height: """ + BUTTON_MIN_HEIGHT + """; font-size: """ + FONT_SIZE_BODY + """ !important; }
+div[data-baseweb="select"] { min-height: """ + button_height + """; font-size: """ + body_size + """; }
+input[type="text"] { min-height: """ + button_height + """; font-size: """ + body_size + """ !important; }
 .explain-card {
     background: #f8fafc;
     border: 1px solid #edf1f7;

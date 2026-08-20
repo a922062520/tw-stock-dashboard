@@ -229,6 +229,46 @@ def render_chip_analysis(chip_summary: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# 分析結果文字摘要（給下載／分享用，純文字、不含任何 HTML）
+# ---------------------------------------------------------------------------
+def build_summary_text(
+    stock_code: str,
+    stock_name: str | None,
+    concl: dict,
+    light_info: dict,
+    day_change_pct: float | None,
+    annual_return: float,
+    annual_vol: float,
+    query_date: str,
+) -> str:
+    emoji = TRAFFIC_LIGHT_EMOJI[light_info["light"]]
+    headline = TRAFFIC_LIGHT_TEXT[(light_info["light"], light_info["reason_kind"])]
+    name_part = f"　{stock_name}" if stock_name else ""
+    change_part = f"（{day_change_pct*100:+.2f}%）" if day_change_pct is not None else ""
+
+    lines = [
+        f"{stock_code}{name_part} 分析摘要",
+        f"查詢時間：{query_date}",
+        "",
+        f"目前價格：{concl['close_now']:.2f}{change_part}",
+        f"一句話結論：{emoji} {headline}",
+        "",
+        f"建議操作時間框架：{concl['horizon']}",
+        f"風險等級：{concl['risk_lvl']}",
+        f"參考進場價：{concl['entry_ref']:.2f}",
+        f"參考停損價：{concl['stop_loss_price']:.2f}（-{concl['stop_loss_pct']*100:.1f}%）",
+        f"參考停利價：{concl['take_profit_price']:.2f}（+{concl['take_profit_pct']*100:.1f}%）",
+        "",
+        f"年化平均報酬率：{annual_return*100:.2f}%",
+        f"年化波動度：{annual_vol*100:.2f}%",
+        "",
+        "資料僅供參考，不構成投資建議。",
+        "由「台股分析儀表板」產生：https://tw-stock-dashboard.streamlit.app/",
+    ]
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # 獲利與股利卡片
 # ---------------------------------------------------------------------------
 def render_fundamentals_card(profit_summary: dict, dividend_summary: dict) -> None:

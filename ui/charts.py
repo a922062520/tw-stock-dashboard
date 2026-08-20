@@ -142,6 +142,36 @@ def render_kd_chart(price_df: pd.DataFrame, missing_dates) -> None:
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
+_COMPARE_LINE_COLORS = [COLORS["accent"], COLORS["up"], COLORS["ma60"], COLORS["ma20"]]
+
+
+def render_compare_chart(price_dfs: dict, labels: dict) -> None:
+    """多檔股票比較：各自從查詢區間第一天換算成「累積漲跌幅（%）」再疊在同一張圖，
+    這樣不同股價level的股票（例如一檔20元、一檔900元）才能放在同一個Y軸上比較。"""
+    fig = go.Figure()
+    all_missing = set()
+    for i, (code, df) in enumerate(price_dfs.items()):
+        if df is None or df.empty:
+            continue
+        base = float(df["Close"].iloc[0])
+        pct_change = (df["Close"] / base - 1) * 100
+        label = labels.get(code, code)
+        fig.add_trace(
+            go.Scatter(
+                x=df.index, y=pct_change, name=f"{code} {label}".strip(),
+                line=dict(color=_COMPARE_LINE_COLORS[i % len(_COMPARE_LINE_COLORS)], width=2.2),
+                hovertemplate="%{y:+.1f}%<extra>" + f"{code} {label}".strip() + "</extra>",
+            )
+        )
+        all_missing.update(get_missing_dates(df.index))
+
+    fig.add_hline(y=0, line_width=1, line_color="#cbd5e1")
+    fig.update_layout(**base_layout(height=380))
+    fig.update_yaxes(gridcolor=COLORS["grid"], ticksuffix="%")
+    fig.update_xaxes(gridcolor=COLORS["grid"], rangebreaks=[dict(values=sorted(all_missing))])
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+
 def render_chip_chart(chip_df: pd.DataFrame) -> None:
     fig = go.Figure()
     for col, color in [

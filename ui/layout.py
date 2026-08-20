@@ -34,6 +34,71 @@ def render_recent_stocks() -> None:
             st.rerun()
 
 
+# ---------------------------------------------------------------------------
+# 我的自選股：跟「本次查看過」不同，這個是使用者主動加入、存進網址參數（URL query
+# params）而不是伺服器端資料庫，符合「不保存任何使用者資料」的設計原則——換瀏覽器
+# 分頁或關掉重開就會消失，但用同一個網址（加進書籤／分享給家人）就能保留。
+# ---------------------------------------------------------------------------
+_WATCHLIST_PARAM = "watch"
+_WATCHLIST_MAX = 10
+
+
+def _load_watchlist_from_url() -> list[str]:
+    raw = st.query_params.get(_WATCHLIST_PARAM, "")
+    if not raw:
+        return []
+    return [code.strip() for code in raw.split(",") if code.strip()]
+
+
+def _save_watchlist_to_url(codes: list[str]) -> None:
+    if codes:
+        st.query_params[_WATCHLIST_PARAM] = ",".join(codes)
+    elif _WATCHLIST_PARAM in st.query_params:
+        del st.query_params[_WATCHLIST_PARAM]
+
+
+def get_watchlist() -> list[str]:
+    if "watchlist" not in st.session_state:
+        st.session_state["watchlist"] = _load_watchlist_from_url()
+    return st.session_state["watchlist"]
+
+
+def toggle_watchlist(code: str) -> None:
+    codes = get_watchlist()
+    if code in codes:
+        codes = [c for c in codes if c != code]
+    else:
+        codes = [code] + codes
+        codes = codes[:_WATCHLIST_MAX]
+    st.session_state["watchlist"] = codes
+    _save_watchlist_to_url(codes)
+
+
+def render_watchlist_section(name_map: dict) -> None:
+    """畫面上方的「我的自選股」快速按鈕列，點了直接查詢；網址列會記住這份清單。"""
+    codes = get_watchlist()
+    if not codes:
+        return
+    st.caption("⭐ 我的自選股（存在網址列，加進書籤或分享網址就能保留）：")
+    cols = st.columns(len(codes))
+    for col, code in zip(cols, codes):
+        name = name_map.get(code, "")
+        label = f"{code} {name}".strip()
+        if col.button(label, key=f"watch_{code}", use_container_width=True):
+            st.session_state["search_text"] = code
+            st.rerun()
+
+
+def render_watchlist_toggle_button(code: str) -> None:
+    """在查到的股票旁邊放一顆「加入／移除自選」按鈕。"""
+    codes = get_watchlist()
+    is_in = code in codes
+    label = "★ 已加入自選股" if is_in else "☆ 加入自選股"
+    if st.button(label, key=f"watch_toggle_{code}"):
+        toggle_watchlist(code)
+        st.rerun()
+
+
 def render_search_section(name_map: dict, name_map_error: str | None):
     """回傳 (stock_code_input, matched_name, raw_input)。支援代號、中文全名、中文部分名稱模糊比對。"""
     st.markdown("### 查詢股票")
@@ -79,6 +144,22 @@ def render_search_section(name_map: dict, name_map_error: str | None):
                 stock_code_input, matched_name = choice.split("　")
 
     return stock_code_input, matched_name, raw_input
+
+
+def render_compare_input(main_code: str) -> list[str]:
+    """讓使用者輸入另外1-2檔股票代號來比較（同一段查詢區間的累積漲跌幅疊圖）。
+    只接受代號（不支援中文名稱模糊比對），保持這個功能單純好維護。"""
+    with st.expander("📊 比較其他股票（最多加2檔，看同一段時間誰漲跌比較多）", expanded=False):
+        raw = st.text_input(
+            "輸入股票代號，用逗號分開，例如 2317,2454",
+            key="compare_codes_input",
+            placeholder="例如 2317,2454",
+        ).strip()
+        if not raw:
+            return []
+        codes = [c.strip() for c in raw.split("，" if "，" in raw else ",") if c.strip()]
+        codes = [c for c in codes if c.isdigit() and c != main_code][:2]
+        return codes
 
 
 def render_date_range_controls():
