@@ -1,84 +1,79 @@
 """
-三大法人籌碼資料（來源：TWSE T86，實驗性功能，預設關閉，僅供參考）。
-逐日快取用 st.cache_data（雲端相容，不寫本機檔案）；同一天的歷史資料不會變，
-所以快取時間可以設長一點（見 config.CACHE_TTL_CHIP_DAY）。
+三大法人籌碼資料（來源：FinMind TaiwanStockInstitutionalInvestorsBuySell，實驗性功能，
+預設關閉，僅供參考）。改成單次區間請求，取代原本最多 60 次逐日呼叫 TWSE 的做法，
+大幅降低查詢時間與被鎖 IP 的風險。快取用 st.cache_data（雲端相容，不寫本機檔案）；
+同一天的歷史資料不會變，所以快取時間可以設長一點（見 config.CACHE_TTL_CHIP_DAY）。
 """
 
 from __future__ import annotations
 
-import time
-from datetime import date
+from datetime import date, timedelta
 
 import pandas as pd
 import requests
 import streamlit as st
 
-from config import CACHE_TTL_CHIP_DAY, TWSE_T86_URL
+from config import CACHE_TTL_CHIP_DAY, FINMIND_API_URL
+
+# FinMind 用英文代稱區分五個法人子類別，對應到畫面上習慣的三大分類：
+# 外資買賣超＝外資及陸資（不含外資自營商）；自營商買賣超＝自行買賣＋避險合計。
+_FOREIGN = "Foreign_Investor"
+_FOREIGN_DEALER_SELF = "Foreign_Dealer_Self"
+_TRUST = "Investment_Trust"
+_DEALER_SELF = "Dealer_self"
+_DEALER_HEDGING = "Dealer_Hedging"
 
 
 @st.cache_data(ttl=CACHE_TTL_CHIP_DAY, show_spinner=False)
-def _fetch_chip_single_day(day: date):
-    date_str = day.strftime("%Y%m%d")
+def _fetch_finmind_chip_raw(stock_code: str, start: date, end: date):
     try:
         resp = requests.get(
-            TWSE_T86_URL,
-            params={"date": date_str, "selectType": "ALL", "response": "json"},
-            timeout=8,
+            FINMIND_API_URL,
+            params={
+                "dataset": "TaiwanStockInstitutionalInvestorsBuySell",
+                "data_id": stock_code,
+                "start_date": start.isoformat(),
+                "end_date": end.isoformat(),
+            },
+            timeout=15,
         )
-        return resp.json()
+        payload = resp.json()
     except Exception:
         return None
 
-
-def _parse_chip_row(row, fields):
-    wanted = {
-        "外資買賣超": ["外陸資買賣超股數(不含外資自營商)", "外資買賣超股數"],
-        "投信買賣超": ["投信買賣超股數"],
-        "自營商買賣超": ["自營商買賣超股數"],
-        "三大法人合計": ["三大法人買賣超股數"],
-    }
-    result = {}
-    for label, candidates in wanted.items():
-        val = None
-        for col_name in candidates:
-            if col_name in fields:
-                idx = fields.index(col_name)
-                try:
-                    val = int(row[idx].replace(",", ""))
-                except (ValueError, IndexError, AttributeError):
-                    val = None
-                break
-        result[label] = val
-    return result
+    if payload.get("status") != 200 or not payload.get("data"):
+        return None
+    return payload["data"]
 
 
 def fetch_chip_data(stock_code: str, start: date, end: date, max_days: int = 60):
-    """抓取近 max_days 個交易日的三大法人買賣超（逐日呼叫 TWSE，量大時只取最近區間）。"""
-    all_days = pd.bdate_range(start, end)
-    target_days = list(all_days[-max_days:])
-
-    records = []
-    progress = st.progress(0.0, text="正在抓取籌碼資料（來源：證交所），請稍等一下…")
-    ok_any = False
-    for i, d in enumerate(target_days):
-        day = d.date()
-        data = _fetch_chip_single_day(day)
-        progress.progress((i + 1) / len(target_days))
-        if not data or data.get("stat") != "OK":
-            time.sleep(0.05)
-            continue
-        fields = data.get("fields", [])
-        for row in data.get("data", []):
-            if row and row[0].strip() == stock_code:
-                parsed = _parse_chip_row(row, fields)
-                parsed["date"] = day
-                records.append(parsed)
-                ok_any = True
-                break
-        time.sleep(0.05)
-    progress.empty()
-
-    if not ok_any:
+    """抓取三大法人買賣超（FinMind 單次區間請求）。只取最近 max_days 個交易日方便畫圖，
+    所以就算查詢區間選很長（例如近1年），實際要跟 FinMind 要的天數還是有上限。"""
+    request_start = max(start, end - timedelta(days=int(max_days * 1.6) + 10))
+    raw = _fetch_finmind_chip_raw(stock_code, request_start, end)
+    if not raw:
         return None
-    chip_df = pd.DataFrame(records).set_index("date").sort_index()
-    return chip_df
+
+    df = pd.DataFrame(raw)
+    if df.empty or "name" not in df.columns:
+        return None
+
+    df["net"] = df["buy"] - df["sell"]
+    pivot = df.pivot_table(index="date", columns="name", values="net", aggfunc="sum", fill_value=0)
+
+    result = pd.DataFrame(index=pivot.index)
+    result["外資買賣超"] = pivot.get(_FOREIGN, 0)
+    result["投信買賣超"] = pivot.get(_TRUST, 0)
+    result["自營商買賣超"] = pivot.get(_DEALER_SELF, 0) + pivot.get(_DEALER_HEDGING, 0)
+    result["三大法人合計"] = (
+        result["外資買賣超"] + result["投信買賣超"] + result["自營商買賣超"] + pivot.get(_FOREIGN_DEALER_SELF, 0)
+    )
+
+    result.index = pd.to_datetime(result.index).date
+    result = result.sort_index()
+    if len(result) > max_days:
+        result = result.iloc[-max_days:]
+
+    if result.empty:
+        return None
+    return result

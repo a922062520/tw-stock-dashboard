@@ -220,8 +220,8 @@ with st.expander("查看技術指標（RSI、KD、年化報酬與波動度）", 
     st.markdown("#### 年化報酬與波動度")
     render_annual_metric_card(annual_return, annual_vol, concl["risk_lvl"])
 
-with st.expander("查看三大法人買賣超（實驗性功能，資料來源：證交所）", expanded=True):
-    show_chip = st.checkbox("顯示三大法人籌碼資料（近 60 個交易日，資料來源：證交所）", value=True)
+with st.expander("查看三大法人買賣超（實驗性功能，資料來源：FinMind）", expanded=True):
+    show_chip = st.checkbox("顯示三大法人籌碼資料（近 60 個交易日，資料來源：FinMind）", value=True)
     if show_chip:
         try:
             chip_df = fetch_chip_data(stock_code_input, start_date, end_date, max_days=60)
