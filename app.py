@@ -251,4 +251,4 @@ with st.expander("查看近期相關新聞", expanded=True):
         st.caption("新聞來源：Google 新聞，僅供參考，請自行判斷真實性與時效性，不代表本工具立場。")
 
 st.divider()
-st.caption("資料僅供參考，不構成投資建議。股價資料來源：上市個股為台灣證券交易所，上櫃個股為 FinMind 開放資料平台；籌碼資料來源：台灣證券交易所。")
+st.caption("資料僅供參考，不構成投資建議。股價資料來源：上市個股為台灣證券交易所，上櫃個股為 FinMind 開放資料平台；籌碼資料來源：FinMind。")
