@@ -145,12 +145,14 @@ def fetch_price(stock_code: str, start: date, end: date):
         df = df.loc[(df.index.date >= start) & (df.index.date <= end)]
         df = df.dropna(subset=["Close"])
         if not df.empty:
+            df["Volume"] = (df["Volume"] / 1000).round().astype(int)  # 股數換算成張，台灣人講量一律講「張」
             return df, f"{stock_code}.TW"
 
     # TWSE 查不到，可能是上櫃股票，改試 FinMind
     df = _fetch_finmind_range(stock_code, start, end)
     df = df.dropna(subset=["Close"]) if not df.empty else df
     if not df.empty:
+        df["Volume"] = (df["Volume"] / 1000).round().astype(int)
         return df, f"{stock_code}.TWO"
 
     return None, f"{stock_code}.TW"

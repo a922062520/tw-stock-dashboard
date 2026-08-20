@@ -107,7 +107,7 @@ def render_daily_kpi_card(price_df: pd.DataFrame, selected_date) -> None:
             f"{change_pct*100:+.2f}%" if change_pct is not None else None,
             delta_color="inverse",  # 台股慣例：紅漲綠跌
         )
-        k6.metric("成交量", f"{row['Volume']:,.0f}")
+        k6.metric("成交量", f"{row['Volume']:,.0f} 張")
 
         extra_bits = []
         for label, col in [("RSI", "RSI"), ("K", "K"), ("D", "D"), ("MA20", "MA20"), ("MA60", "MA60")]:

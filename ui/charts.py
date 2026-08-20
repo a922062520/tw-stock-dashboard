@@ -77,7 +77,7 @@ def render_price_chart(price_df: pd.DataFrame):
         go.Bar(
             x=price_df.index, y=price_df["Volume"], name="成交量",
             marker_color=vol_colors, marker_line_width=0,
-            hovertemplate="成交量 %{y:,.0f}<extra></extra>",
+            hovertemplate="成交量 %{y:,.0f} 張<extra></extra>",
         ),
         row=2, col=1,
     )
@@ -184,7 +184,7 @@ def render_chip_chart(chip_df: pd.DataFrame) -> None:
                 go.Bar(
                     x=chip_df.index, y=chip_df[col], name=col,
                     marker_color=color, marker_line_width=0,
-                    hovertemplate=f"{col} %{{y:,.0f}}<extra></extra>",
+                    hovertemplate=f"{col} %{{y:,.0f}} 張<extra></extra>",
                 )
             )
     fig.add_hline(y=0, line_width=1, line_color="#cbd5e1")

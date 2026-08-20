@@ -68,6 +68,9 @@ def fetch_chip_data(stock_code: str, start: date, end: date, max_days: int = 60)
     result["三大法人合計"] = (
         result["外資買賣超"] + result["投信買賣超"] + result["自營商買賣超"] + pivot.get(_FOREIGN_DEALER_SELF, 0)
     )
+    # FinMind 回傳的 buy/sell 是原始股數，台灣人講買賣超一律講「張」（1張=1000股），
+    # 這裡統一換算成張，畫面（圖表、白話文字）就不用各自處理單位。
+    result = (result / 1000).round().astype(int)
 
     result.index = pd.to_datetime(result.index).date
     result = result.sort_index()

@@ -164,7 +164,7 @@ SIGNAL_TEXTS = {
     },
     "volume_spike": {
         "title": "今天的成交量明顯放大（超過近 20 日均量的 2 倍）",
-        "what": "今天的成交股數，是最近 20 個交易日平均成交量的 2 倍以上。",
+        "what": "今天的成交張數，是最近 20 個交易日平均成交量的 2 倍以上。",
         "meaning": "通常代表今天有比較大的資金進出，市場關注度提高。",
         "caution": "爆量可能是好消息也可能是壞消息造成的，需要搭配當天股價漲跌一起看，不能單看量。",
     },
@@ -246,15 +246,15 @@ def chip_trend_text(summary: dict) -> str:
     dominant_value = summary.get("dominant_value")
 
     direction_text = {
-        "buy": f"合計買超約 {abs(net_total):,.0f} 股",
-        "sell": f"合計賣超約 {abs(net_total):,.0f} 股",
+        "buy": f"合計買超約 {abs(net_total):,.0f} 張",
+        "sell": f"合計賣超約 {abs(net_total):,.0f} 張",
         "flat": "買賣接近平衡",
     }[direction]
 
     sentence = f"最近 {days} 個交易日，外資、投信、自營商三大法人{direction_text}。"
     if dominant_label and dominant_value is not None and abs(dominant_value) > 0:
         action = "買超" if dominant_value > 0 else "賣超"
-        sentence += f"其中又以「{dominant_label.replace('買賣超', '')}」{action}最明顯，約 {abs(dominant_value):,.0f} 股。"
+        sentence += f"其中又以「{dominant_label.replace('買賣超', '')}」{action}最明顯，約 {abs(dominant_value):,.0f} 張。"
 
     if direction == "buy":
         sentence += "近期法人動向偏多，但法人買超不保證股價一定會漲，仍要搭配其他資訊一起看。"
@@ -282,5 +282,5 @@ DIVIDEND_SUMMARY_TEXT_WITH_DATA = (
 )
 DIVIDEND_SUMMARY_TEXT_NONE = "目前查不到這支股票的現金股利紀錄，可能是這段時間沒有配息，或資料來源沒有收錄。"
 
-FUNDAMENTALS_DISCLAIMER = "獲利與股利資料來源為 Yahoo Finance，台股相關資料有時會有缺漏或更新較慢，正式決策前建議到公開資訊觀測站等官方來源再次確認，這裡的資訊僅供參考、不構成投資建議。"
+FUNDAMENTALS_DISCLAIMER = "獲利與股利資料來源為 FinMind（查不到時退回 Yahoo Finance），台股相關資料有時會有缺漏或更新較慢，正式決策前建議到公開資訊觀測站等官方來源再次確認，這裡的資訊僅供參考、不構成投資建議。"
 ERROR_NO_FUNDAMENTALS = "目前查不到這支股票的獲利與股利資料，可能是資料來源當下無法取得，或這檔股票沒有收錄相關資料。"

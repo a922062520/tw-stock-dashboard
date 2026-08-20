@@ -232,7 +232,7 @@ with st.expander("查看三大法人買賣超（實驗性功能，資料來源�
             st.info(ERROR_NO_CHIP_DATA)
         else:
             render_chip_chart(chip_df)
-            st.caption("正值＝買超（買進多於賣出），負值＝賣超（賣出多於買進）。單位：股數。")
+            st.caption("正值＝買超（買進多於賣出），負值＝賣超（賣出多於買進）。單位：張（1張=1000股）。")
             render_chip_analysis(analyze_chip_trend(chip_df))
 
 with st.expander("查看近期相關新聞", expanded=True):
