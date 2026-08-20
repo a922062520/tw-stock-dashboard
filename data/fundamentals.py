@@ -4,6 +4,11 @@
 （TaiwanStockFinancialStatements、TaiwanStockDividend，見 config.py 說明），
 查不到再退回 yfinance 當備援，兩邊都失敗才回傳空結果——呼叫端一律要能處理
 「查不到」的情況。
+
+yfinance 只在FinMind查不到時才會用到（備援），但這個套件本身依賴不少東西，
+import 有實測得到的成本。故意不放在檔案最上面、改成在真的要用到的兩個函式
+內部才 import——多數查詢FinMind就有資料，根本不會走到這條路，冷啟動時就不用
+白白付這個成本。
 """
 
 from __future__ import annotations
@@ -11,7 +16,6 @@ from __future__ import annotations
 import pandas as pd
 import requests
 import streamlit as st
-import yfinance as yf
 
 from config import CACHE_TTL_FUNDAMENTALS, FINMIND_API_URL
 from data.finmind_auth import get_finmind_token
@@ -114,6 +118,8 @@ def fetch_fundamentals_info(ticker: str) -> dict:
         return info
 
     try:
+        import yfinance as yf
+
         info = yf.Ticker(ticker).info
         return info or {}
     except Exception:
@@ -129,6 +135,8 @@ def fetch_dividend_history(ticker: str):
         return series
 
     try:
+        import yfinance as yf
+
         div = yf.Ticker(ticker).dividends
         if div is None or not isinstance(div, pd.Series) or div.empty:
             return None
