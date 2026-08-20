@@ -136,18 +136,36 @@ def _fetch_finmind_range(stock_code: str, start: date, end: date) -> tuple[pd.Da
 @st.cache_data(ttl=CACHE_TTL_PRICE, show_spinner=False)
 def fetch_price(stock_code: str, start: date, end: date):
     """抓取台股日 K 資料。先試上市（證交所 STOCK_DAY），查不到再試上櫃（FinMind）。
-    回傳 (df_or_None, ticker, error_reason)。error_reason 只在 df 是 None 時有意義：
-    "not_found" = 資料來源都有回應，只是查不到這支股票（代號打錯、下市、非股票類）；
+    回傳 (df_or_None, ticker, error_reason, gap_months)。error_reason 只在 df 是 None 時
+    有意義："not_found" = 資料來源都有回應，只是查不到這支股票（代號打錯、下市、非股票類）；
     "source_unreachable" = 資料來源本身連不上或逾時，不是股票代號的問題，重試可能就好了。
-    這兩種原因呼叫端要用不同的話跟使用者說，不然會把「來源掛掉」誤會成「你打錯代號」。"""
-    frames = []
-    any_reachable = False
+    這兩種原因呼叫端要用不同的話跟使用者說，不然會把「來源掛掉」誤會成「你打錯代號」。
+
+    gap_months：查詢區間「中間」（不是開頭結尾——開頭結尾空月通常是還沒上市／還沒交易到，
+    是正常的）偵測到整月零筆資料、重試一次後還是零筆的月份（"YYYY-MM"），代表證交所可能
+    悄悄漏了這個月的資料，不是真的沒有交易。這種缺口原本會被靜靜跳過，均線/指標照樣算但
+    會不準，畫面上完全看不出破洞——呼叫端要用這個提醒使用者。"""
+    month_results = []  # 用 list（不是 tuple）方便下面補資料時直接改
     for month_start in _month_starts(start, end):
         frame, reachable = _fetch_twse_month(stock_code, month_start)
-        any_reachable = any_reachable or reachable
-        if not frame.empty:
-            frames.append(frame)
+        month_results.append([month_start, frame, reachable])
         time.sleep(0.15)  # 對官方 API 客氣一點，避免短時間內大量請求又被限流
+
+    non_empty_months = [m for m, f, _ in month_results if not f.empty]
+    gap_months = []
+    if non_empty_months:
+        first_month, last_month = min(non_empty_months), max(non_empty_months)
+        for entry in month_results:
+            month_start, frame, reachable = entry
+            if frame.empty and reachable and first_month < month_start < last_month:
+                retry_frame, retry_reachable = _fetch_twse_month(stock_code, month_start)
+                if not retry_frame.empty:
+                    entry[1] = retry_frame  # 重試就有了，之前只是運氣不好逾時，補回去
+                elif retry_reachable:
+                    gap_months.append(month_start.strftime("%Y-%m"))
+
+    frames = [f for _, f, _ in month_results if not f.empty]
+    any_reachable = any(r for _, _, r in month_results)
 
     if frames:
         df = pd.concat(frames).sort_index()
@@ -156,7 +174,7 @@ def fetch_price(stock_code: str, start: date, end: date):
         df = df.dropna(subset=["Close"])
         if not df.empty:
             df["Volume"] = (df["Volume"] / 1000).round().astype(int)  # 股數換算成張，台灣人講量一律講「張」
-            return df, f"{stock_code}.TW", None
+            return df, f"{stock_code}.TW", None, gap_months
 
     # TWSE 查不到，可能是上櫃股票，改試 FinMind
     df, finmind_reachable = _fetch_finmind_range(stock_code, start, end)
@@ -164,10 +182,10 @@ def fetch_price(stock_code: str, start: date, end: date):
     df = df.dropna(subset=["Close"]) if not df.empty else df
     if not df.empty:
         df["Volume"] = (df["Volume"] / 1000).round().astype(int)
-        return df, f"{stock_code}.TWO", None
+        return df, f"{stock_code}.TWO", None, []
 
     error_reason = "not_found" if any_reachable else "source_unreachable"
-    return None, f"{stock_code}.TW", error_reason
+    return None, f"{stock_code}.TW", error_reason, []
 
 
 @st.cache_data(ttl=CACHE_TTL_STOCK_NAME, show_spinner=False)

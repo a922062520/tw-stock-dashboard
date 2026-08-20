@@ -100,7 +100,9 @@ if not stock_code_input:
 calc_start_date = start_date - timedelta(days=120)
 
 with st.spinner(LOADING_PRICE):
-    price_df_full, used_ticker, price_error_reason = fetch_price(stock_code_input, calc_start_date, end_date)
+    price_df_full, used_ticker, price_error_reason, price_gap_months = fetch_price(
+        stock_code_input, calc_start_date, end_date
+    )
 
 if price_df_full is None or price_df_full.empty:
     if price_error_reason == "source_unreachable":
@@ -108,6 +110,13 @@ if price_df_full is None or price_df_full.empty:
     else:
         st.error(ERROR_NO_PRICE_DATA.format(code=stock_code_input))
     st.stop()
+
+if price_gap_months:
+    st.warning(
+        f"⚠️ 查詢範圍內有 {len(price_gap_months)} 個月（{'、'.join(price_gap_months)}）"
+        "證交所資料抓不到（重試過還是沒有），不是這段期間真的沒有交易，"
+        "均線／技術指標在這段可能不準確，建議晚點再查一次。"
+    )
 
 stock_name = matched_name or fetch_stock_name(used_ticker)
 remember_stock(stock_code_input, stock_name)
@@ -209,7 +218,7 @@ if compare_codes:
     compare_names = {stock_code_input: stock_name or ""}
     for code in compare_codes:
         with st.spinner(f"查詢 {code} 中..."):
-            cmp_df, cmp_ticker, cmp_error_reason = fetch_price(code, start_date, end_date)
+            cmp_df, cmp_ticker, cmp_error_reason, _cmp_gap_months = fetch_price(code, start_date, end_date)
         if cmp_df is None or cmp_df.empty:
             if cmp_error_reason == "source_unreachable":
                 st.warning(f"{code} 的資料來源暫時連不上，這檔先跳過比較，稍後可以再試一次。")
