@@ -84,24 +84,25 @@ div[data-testid="stMetricValue"] {
     font-weight: 700;
     color: #2b2822;
     font-variant-numeric: tabular-nums;
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: unset !important;
     word-break: break-word;
     line-height: 1.25;
 }
-div[data-testid="stMetricValue"] > div {
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: unset !important;
-}
 div[data-testid="stMetricDelta"] { font-variant-numeric: tabular-nums; }
 div[data-testid="stMetricLabel"] { font-size: """ + caption_size + """; color: #6b6353; }
-/* 注意：stMetricLabel 的根元素實際上是 <label> 標籤，不是 <div>——之前寫成
-   div[data-testid="stMetricLabel"] 選擇器整條都選不到東西，看起來套用了但完全沒生效，
-   要用 [data-testid="stMetricLabel"] 不指定標籤名稱才會真的選到。 */
-[data-testid="stMetricLabel"] p,
-[data-testid="stMetricLabel"] > div {
+/* 字體放大時「被吃字」的根因：Streamlit 內建 CSS 對 stMetric 系列元件的文字節點
+   （不管是 stMetricValue、stMetricDelta 還是 stMetricLabel）預設是 white-space:nowrap
+   + overflow:hidden + text-overflow:ellipsis，字體正常大小時文字剛好塞得下所以看不出來，
+   字體一放大就會被裁掉。這裡踩過兩個雷，都用 * 這種不限定層數/標籤名稱的萬用選擇器
+   一次涵蓋，不要再照原本猜測的層數/標籤名稱寫：
+     1. 只寫「> div」等單一層數的子選擇器：實際上文字節點可能在孫層甚至更深
+        （例如 stMetricValue > div > stMarkdownContainer > p），差一層就完全沒套用到。
+     2. 用標籤名稱鎖定選擇器（例如 div[data-testid=...]）：stMetricLabel 的根元素
+        實際上是 <label>，不是 <div>，鎖了錯的標籤名稱等於整條選擇器永遠選不到東西。
+   改完務必用瀏覽器打開實際頁面、開字體放大、檢查 computed style 或 scrollWidth>clientWidth
+   有沒有文字仍被截斷，不能只看選擇器語法「看起來」有覆蓋到就當作修好了。 */
+[data-testid="stMetricValue"] *,
+[data-testid="stMetricDelta"] *,
+[data-testid="stMetricLabel"] * {
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: unset !important;
