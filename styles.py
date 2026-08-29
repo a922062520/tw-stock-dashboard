@@ -98,7 +98,9 @@ div[data-testid="stMetricValue"] > div {
 div[data-testid="stMetricDelta"] { font-variant-numeric: tabular-nums; }
 div[data-testid="stMetricLabel"] { font-size: """ + caption_size + """; color: #6b6353; }
 div[data-testid="stMetricLabel"] p,
-div[data-testid="stMetricLabel"] > div {
+div[data-testid="stMetricLabel"] > div,
+div[data-testid="stMain"] div[data-testid="stMetricLabel"] p,
+div[data-testid="stMain"] div[data-testid="stMetricLabel"] > div {
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: unset !important;
