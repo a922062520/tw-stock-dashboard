@@ -247,8 +247,13 @@ if compare_codes:
 
 st.divider()
 
-# ---- 第三層：獲利股利、技術指標、法人籌碼、新聞（收在展開區內，想看才點開）--------
-with st.expander("查看獲利與股利", expanded=True):
+# ---- 第三層：獲利股利、技術指標、法人籌碼、新聞（改用頁籤切換，取代原本4個一路往下攤開
+# 的展開區塊——內容變成同一個高度內用點的切換，不用一直往下滑，也方便在頁籤間快速比較）----
+tab_fundamentals, tab_technical, tab_chip, tab_news = st.tabs(
+    ["💰 獲利與股利", "📊 技術指標", "🏦 三大法人買賣超", "📰 近期相關新聞"]
+)
+
+with tab_fundamentals:
     if not fundamentals_info and dividend_history is None:
         st.info(ERROR_NO_FUNDAMENTALS)
     else:
@@ -258,7 +263,7 @@ with st.expander("查看獲利與股利", expanded=True):
         render_valuation_card(valuation)
         render_fundamentals_card(profit_summary, dividend_summary)
 
-with st.expander("查看技術指標（RSI、KD、年化報酬與波動度）", expanded=True):
+with tab_technical:
     st.markdown("#### RSI（相對強弱指標，14 日）")
     render_rsi_chart(price_df, missing_dates)
     rsi_now = price_df["RSI"].iloc[-1] if len(price_df) else None
@@ -272,7 +277,8 @@ with st.expander("查看技術指標（RSI、KD、年化報酬與波動度）", 
     st.markdown("#### 年化報酬與波動度")
     render_annual_metric_card(annual_return, annual_vol, concl["risk_lvl"])
 
-with st.expander("查看三大法人買賣超（實驗性功能，資料來源：FinMind）", expanded=True):
+with tab_chip:
+    st.caption("實驗性功能，資料來源：FinMind")
     show_chip = st.checkbox("顯示三大法人籌碼資料（近 60 個交易日，資料來源：FinMind）", value=True)
     if show_chip:
         try:
@@ -287,7 +293,7 @@ with st.expander("查看三大法人買賣超（實驗性功能，資料來源�
             st.caption("正值＝買超（買進多於賣出），負值＝賣超（賣出多於買進）。單位：張（1張=1000股）。")
             render_chip_analysis(analyze_chip_trend(chip_df))
 
-with st.expander("查看近期相關新聞", expanded=True):
+with tab_news:
     news_items = fetch_news(stock_code_input, stock_name)
     if not news_items:
         st.caption(ERROR_NO_NEWS)

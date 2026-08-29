@@ -97,6 +97,12 @@ div[data-testid="stMetricValue"] > div {
 }
 div[data-testid="stMetricDelta"] { font-variant-numeric: tabular-nums; }
 div[data-testid="stMetricLabel"] { font-size: """ + caption_size + """; color: #6b6353; }
+div[data-testid="stMetricLabel"] p,
+div[data-testid="stMetricLabel"] > div {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+}
 hr { border-color: #e6ddc8; }
 .badge {
     display: inline-block;
@@ -136,6 +142,19 @@ hr { border-color: #e6ddc8; }
 .stApp { overflow-x: hidden; }
 div[data-baseweb="select"] { min-height: """ + button_height + """; font-size: """ + body_size + """; }
 input[type="text"] { min-height: """ + button_height + """; font-size: """ + body_size + """ !important; }
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    font-size: """ + body_size + """;
+    font-weight: 700;
+    min-height: """ + button_height + """;
+    padding: 8px 16px;
+    white-space: nowrap;
+}
+div[data-testid="stTabs"] [data-testid="stMarkdownContainer"] p { font-size: """ + body_size + """; font-weight: 700; }
+div[data-testid="stTabs"] { overflow-x: auto; }
+@media (max-width: 640px) {
+    div[data-testid="stTabs"] div[data-baseweb="tab-list"] { gap: 2px; }
+    div[data-testid="stTabs"] button[data-baseweb="tab"] { padding: 8px 10px; }
+}
 .explain-card {
     background: #faf8f2;
     border: 1px solid #e6ddc8;
