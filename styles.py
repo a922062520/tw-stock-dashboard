@@ -97,10 +97,11 @@ div[data-testid="stMetricValue"] > div {
 }
 div[data-testid="stMetricDelta"] { font-variant-numeric: tabular-nums; }
 div[data-testid="stMetricLabel"] { font-size: """ + caption_size + """; color: #6b6353; }
-div[data-testid="stMetricLabel"] p,
-div[data-testid="stMetricLabel"] > div,
-div[data-testid="stMain"] div[data-testid="stMetricLabel"] p,
-div[data-testid="stMain"] div[data-testid="stMetricLabel"] > div {
+/* 注意：stMetricLabel 的根元素實際上是 <label> 標籤，不是 <div>——之前寫成
+   div[data-testid="stMetricLabel"] 選擇器整條都選不到東西，看起來套用了但完全沒生效，
+   要用 [data-testid="stMetricLabel"] 不指定標籤名稱才會真的選到。 */
+[data-testid="stMetricLabel"] p,
+[data-testid="stMetricLabel"] > div {
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: unset !important;
